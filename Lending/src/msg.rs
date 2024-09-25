@@ -1,27 +1,30 @@
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use cosmwasm_std::{Addr, Uint128};
 use cw20::Cw20ReceiveMsg;
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct InstantiateMsg {
     pub usd_token: String,
     pub om_token: String,
-    pub interest_rate: u64,
-    pub collateral_ratio: u64,
+    pub collateral_ratio: Uint128,
+    pub interest_rate: Uint128,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
     Stake {},
-    Borrow {},
+    Unstake { amount: Uint128 },
+    Borrow { amount: Uint128 },
     Repay {},
     Receive(Cw20ReceiveMsg),
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
     GetConfig {},
-    GetStakerInfo { address: String },
-    GetBorrowerInfo { address: String },
+    GetUserInfo { address: Addr },
+    GetPoolInfo {},
 }
