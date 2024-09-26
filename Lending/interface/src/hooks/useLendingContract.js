@@ -58,7 +58,11 @@ export function useLendingContract() {
       // The spendable balance is the minimum of the balance and the allowance
       const spendableBalance = balance < allowance ? balance : allowance;
 
-      console.log(balance.toString(), allowance.toString(), spendableBalance.toString())
+      console.log({
+        balance: balance.toString(),
+        allowance: allowance.toString(),
+        spendableBalance: spendableBalance.toString()
+      })
 
       return {
         balance: balance.toString(),
@@ -110,21 +114,21 @@ export function useLendingContract() {
     setLoading(true);
     try {
       const signingClient = await getSigningClient();
-      const balance = await checkBalance(USD_TOKEN_ADDRESS);
+      const { balance, allowance } = await getSpendableBalance(USD_TOKEN_ADDRESS);
       const amountToStake = BigInt(amount);
       if (BigInt(balance) < amountToStake) {
         throw new Error("Insufficient balance");
       }
-
-      // await getSpendableBalance(USD_TOKEN_ADDRESS);
-      await setAllowance(USD_TOKEN_ADDRESS, amountToStake);
+      if(BigInt(allowance) < amountToStake) {
+        await setAllowance(USD_TOKEN_ADDRESS, amountToStake);
+      }
       const result = await signingClient.execute(
         account.bech32Address,
         CONTRACT_ADDRESS,
-        { stake: {} },
+        { stake: {} }, 
         "auto",
         "",
-        coins(Number(amountToStake.toString()), "USD"),
+        coins(amountToStake.toString(), "USD")
       );
       return result;
     } catch (error) {
@@ -133,9 +137,9 @@ export function useLendingContract() {
     } finally {
       setLoading(false);
     }
-  }, [account, getSigningClient, checkBalance, setAllowance]);
+  }, [account, getSigningClient, getSpendableBalance, setAllowance]);
 
-  const borrow = useCallback(async () => {
+  const borrow = useCallback(async (amount) => {
     if (!account) return;
     setLoading(true);
     try {
@@ -143,7 +147,7 @@ export function useLendingContract() {
       const result = await signingClient.execute(
         account.bech32Address,
         CONTRACT_ADDRESS,
-        { borrow: {} },
+        { borrow: { amount: amount.toString() } }, // Update the message format
         "auto",
         ""
       );
@@ -161,18 +165,18 @@ export function useLendingContract() {
     setLoading(true);
     try {
       const signingClient = await getSigningClient();
-      const balance = await checkBalance(OM_TOKEN_ADDRESS);
-      if (balance < amount) {
+      const { balance } = await getSpendableBalance(OM_TOKEN_ADDRESS);
+      const amountToRepay = BigInt(amount);
+      if (BigInt(balance) < amountToRepay) {
         throw new Error("Insufficient balance");
       }
-      await setAllowance(OM_TOKEN_ADDRESS, amount);
+      await setAllowance(OM_TOKEN_ADDRESS, amountToRepay);
       const result = await signingClient.execute(
         account.bech32Address,
         CONTRACT_ADDRESS,
-        { repay: {} },
+        { repay: { amount: amountToRepay.toString() } }, // Update the message format
         "auto",
-        "",
-        coins(amount, "om")
+        ""
       );
       return result;
     } catch (error) {
@@ -181,7 +185,7 @@ export function useLendingContract() {
     } finally {
       setLoading(false);
     }
-  }, [account, getSigningClient, checkBalance, setAllowance]);
+  }, [account, getSigningClient, getSpendableBalance, setAllowance]);
 
   return { instantiateContract, stake, borrow, repay, loading, setLoading, checkBalance };
 }

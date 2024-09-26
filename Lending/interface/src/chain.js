@@ -49,6 +49,6 @@ export const mantraChainConfig = {
   ]
 };
   
-export const CONTRACT_ADDRESS = "mantra13g564ecvdexf9f4xdap32qh428zdd6g47de0j4nw0gp3nnf53spsuztan8";
+export const CONTRACT_ADDRESS = "mantra13q453k7ug2ma3wam9f6qexccqav3grpw29gc9v4wqxlqa8ns5vvscelpag";
 export const USD_TOKEN_ADDRESS = "mantra1nfwgkq7hkpgdkcpy0phy7h25j5q6hhcewh77fzekjtrmyp34txrqdkxdah";
 export const OM_TOKEN_ADDRESS = "mantra1fha3z7tj26ynusrjg8zc2xm2jnuvq43k0gs66pc0s0ndacje3rnsurdc5z";

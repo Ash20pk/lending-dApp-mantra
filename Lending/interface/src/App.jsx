@@ -1,37 +1,19 @@
-import React, { useState, useEffect, useCallback } from "react";
-import {
-  Box,
-  VStack,
-  HStack,
-  Heading,
-  Text,
-  Input,
-  Button,
-  Flex,
-  useColorMode,
-  Container,
-  useToast,
-  Center,
-  Spacer,
-  Badge,
-} from "@chakra-ui/react";
+import React from "react";
+import { Box, useColorMode, Container, Button, useToast, Flex, Spacer, Text } from "@chakra-ui/react";
 import { MoonIcon, SunIcon } from "@chakra-ui/icons";
 import { useAccount, useConnect, useDisconnect } from "graz";
-import { useLendingContract } from './hooks/useLendingContract';
 import { checkKeplrInstalled, getKeplrInstallUrl } from './utils/keplrUtils';
-import { USD_TOKEN_ADDRESS, OM_TOKEN_ADDRESS } from './chain';
+import Home from "./pages/Home";
+import Stake from "./pages/Stake";
+import BorrowRepay from "./pages/BorrowRepay";
+import { BrowserRouter as Router, Route, Routes, Link } from "react-router-dom";
 
 export default function App() {
   const { data: account, isConnected, isConnecting, isReconnecting } = useAccount();
   const { connect } = useConnect();
   const { disconnect } = useDisconnect();
-  const { stake, borrow, repay, loading, setLoading, checkBalance } = useLendingContract();
   const { colorMode, toggleColorMode } = useColorMode();
   const toast = useToast();
-
-  const [amount, setAmount] = useState(0);
-  const [usdBalance, setUsdBalance] = useState(0);
-  const [omBalance, setOmBalance] = useState(0);
 
   const connectWallet = async () => {
     if (!checkKeplrInstalled()) {
@@ -41,59 +23,13 @@ export default function App() {
       }
     } else {
       try {
-        connect({ chainId: "mantra-hongbai-1" });
+        await connect({ chainId: "mantra-hongbai-1" });
       } catch (error) {
         console.error("Failed to connect:", error);
         showToast("Failed to connect. Please make sure Keplr is set up correctly.", "error");
       }
     }
   };
-
-  const checkBalances = useCallback(async () => {
-    if (!account) return;
-    const usdBalance = await checkBalance(USD_TOKEN_ADDRESS);
-    const omBalance = await checkBalance(OM_TOKEN_ADDRESS);
-    setUsdBalance(usdBalance);
-    setOmBalance(omBalance);
-  }, [account]);
-
-  useEffect(() => {
-    if (isConnected) {
-      checkBalances();
-    }
-  }, [isConnected, checkBalances]);
-
-  const handleStake = useCallback(async () => {
-    try {
-      await stake(amount);
-      showToast("Staked successfully!", "success");
-      checkBalances();
-    } catch (error) {
-      console.error("Stake failed:", error);
-      showToast("Error staking. Please try again.", "error");
-    }
-  }, [stake, amount, checkBalances]);
-
-  const handleBorrow = useCallback(async () => {
-    try {
-      await borrow();
-      showToast("Borrowed successfully!", "success");
-    } catch (error) {
-      console.error("Borrow failed:", error);
-      showToast("Error borrowing. Please try again.", "error");
-    }
-  }, [borrow]);
-
-  const handleRepay = useCallback(async () => {
-    try {
-      await repay(amount);
-      showToast("Repaid successfully!", "success");
-      checkBalances();
-    } catch (error) {
-      console.error("Repay failed:", error);
-      showToast("Error repaying. Please try again.", "error");
-    }
-  }, [repay, amount, checkBalances]);
 
   const showToast = (message, status) => {
     toast({
@@ -106,84 +42,45 @@ export default function App() {
   };
 
   return (
-    <Box minH="100vh" minW="100vw" bg={colorMode === "dark" ? "gray.800" : "gray.100"}>
-      <Container maxW="container.xl" py={8}>
-        <Flex justify="space-between" align="center" mb={8}>
-          <Heading size="xl">Lending DApp</Heading>
-          <HStack spacing={4}>
+    <Router>
+      <Box minH="100vh" minW="100vw" bg={colorMode === "dark" ? "gray.800" : "gray.100"}>
+        {/* Navigation */}
+        <Box bg={colorMode === "dark" ? "gray.700" : "white"} py={4} px={8} boxShadow="md">
+          <Flex align="center">
+            <Text fontSize="xl" fontWeight="bold" mr={8}>Lending dApp</Text>
+            <Link to="/" style={{ marginRight: "1rem" }}>Home</Link>
+            <Link to="/stake" style={{ marginRight: "1rem" }}>Stake</Link>
+            <Link to="/borrow-repay">Borrow/Repay</Link>
+            <Spacer />
             {account && (
-              <Text fontSize="sm">
+              <Button variant="outline" colorScheme="blue" mr={4}>
                 {account.bech32Address.slice(0, 8)}...{account.bech32Address.slice(-4)}
-              </Text>
+              </Button>
             )}
             <Button
               onClick={() => isConnected ? disconnect() : connectWallet()}
               isLoading={isConnecting || isReconnecting}
               loadingText="Connecting"
+              colorScheme="blue"
+              mr={4}
             >
               {isConnected ? "Disconnect" : "Connect Wallet"}
             </Button>
             <Button onClick={toggleColorMode}>
               {colorMode === "light" ? <MoonIcon /> : <SunIcon />}
             </Button>
-          </HStack>
-        </Flex>
+          </Flex>
+        </Box>
 
-        {isConnected ? (
-          <VStack spacing={8} align="stretch">
-            <Center>
-              <VStack spacing={4}>
-                <Heading size="lg" colorScheme="black">Lending Operations</Heading>
-                <Text>USD Balance: {usdBalance}</Text>
-                <Text>OM Balance: {omBalance}</Text>
-                <Input
-                  type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="Enter amount"
-                />
-                <Button
-                  onClick={handleStake}
-                  isLoading={loading}
-                  loadingText="Staking"
-                  colorScheme="blue"
-                  size="lg"
-                >
-                  Stake
-                </Button>
-                <Button
-                  onClick={handleBorrow}
-                  isLoading={loading}
-                  loadingText="Borrowing"
-                  colorScheme="green"
-                  size="lg"
-                >
-                  Borrow
-                </Button>
-                <Button
-                  onClick={handleRepay}
-                  isLoading={loading}
-                  loadingText="Repaying"
-                  colorScheme="red"
-                  size="lg"
-                >
-                  Repay
-                </Button>
-              </VStack>
-            </Center>
-          </VStack>
-        ) : (
-          <Center h="50vh">
-            <VStack spacing={6}>
-              <Heading size="lg">Welcome to Lending DApp</Heading>
-              <Text>Connect your wallet to start lending operations</Text>
-              <Button size="lg" onClick={connectWallet} colorScheme="blue">
-                Connect Wallet
-              </Button>
-            </VStack>
-          </Center>
-        )}
-      </Container>
-    </Box>
+        {/* Routes */}
+        <Container maxW="container.xl" py={8}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/stake" element={<Stake />} />
+            <Route path="/borrow-repay" element={<BorrowRepay />} />
+          </Routes>
+        </Container>
+      </Box>
+    </Router>
   );
 }
